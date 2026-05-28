@@ -8,7 +8,7 @@ Automatic athan (Islamic call to prayer) for macOS. Plays when you're home, at p
 - **Home detection** — checks your router's MAC address via `arp`, no permissions needed
 - **Meeting-aware** — skips if you're in a calendar event (or one starts within 1 minute)
 - **Floating pill notification** — glass-style macOS overlay showing the prayer name with a Skip button
-- **Audio pause/resume** — pauses Spotify or Music.app, resumes after the athan
+- **Audio pause/resume** — pauses any playing audio, resumes after the athan
 - **Random muezzin rotation** — picks from 6 recordings on the Aladhan CDN each time (no local file needed)
 - **Runs automatically** — launchd agent fires every 60 seconds
 
@@ -59,7 +59,7 @@ launchctl load ~/Library/LaunchAgents/com.hisham.athan.plist
 
 ## Prayer time source
 
-Times come from [WISE Mosque Woolwich](https://www.wise-web.org/prayer-times/) via their WordPress REST API:
+Times come from [Wise Masjid High Wycombe](https://www.wise-web.org/prayer-times/) via their WordPress REST API:
 
 ```
 GET https://www.wise-web.org/wp-json/my-route/PrayerTime/{year}/{month}/{day}
