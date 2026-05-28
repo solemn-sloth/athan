@@ -1,0 +1,8 @@
+config.json
+audio/
+logs/
+state/
+athan-pop/.build/
+athan-pop/.swiftpm/
+*.o
+*.d

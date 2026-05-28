@@ -1,0 +1,17 @@
+{
+  "gateway_mac": "YOUR_ROUTER_MAC",
+  "prayers_to_play": ["Fajr", "Dhuhr", "Asr", "Maghrib", "Isha"],
+  "audio_urls": [
+    "https://cdn.aladhan.com/audio/adhans/a1.mp3",
+    "https://cdn.aladhan.com/audio/adhans/a2.mp3",
+    "https://cdn.aladhan.com/audio/adhans/a4.mp3",
+    "https://cdn.aladhan.com/audio/adhans/a7.mp3",
+    "https://cdn.aladhan.com/audio/adhans/a9.mp3",
+    "https://cdn.aladhan.com/audio/adhans/a11-mansour-al-zahrani.mp3"
+  ],
+  "audio_volume": 0.8,
+  "skip_if_meeting": true,
+  "meeting_buffer_minutes": 1,
+  "grace_period_minutes": 2,
+  "timezone": "Europe/London"
+}
