@@ -4,7 +4,7 @@ Automatic athan (Islamic call to prayer) for macOS. Plays when you're home, at p
 
 ## Features
 
-- **Prayer times from your local masjid** — pulls from WISE Mosque (Woolwich) API, perfectly in sync
+- **Prayer times from your local masjid** — pulls from Wise Masjid High Wycombe API, perfectly in sync
 - **Home detection** — checks your router's MAC address via `arp`, no permissions needed
 - **Meeting-aware** — skips if you're in a calendar event (or one starts within 1 minute)
 - **Floating pill notification** — glass-style macOS overlay showing the prayer name with a Skip button
@@ -22,9 +22,9 @@ Automatic athan (Islamic call to prayer) for macOS. Plays when you're home, at p
 ## Install
 
 ```bash
-# 1. Clone to ~/.athan
-git clone https://github.com/hisham-alam/athan ~/.athan
-cd ~/.athan
+# 1. Clone somewhere convenient
+git clone https://github.com/hisham-alam/athan
+cd athan
 
 # 2. Copy and edit config
 cp config.example.json config.json
@@ -70,7 +70,7 @@ To use a different source, replace the API call in `athan.sh` and update the `pr
 ## Logs
 
 ```bash
-tail -f ~/.athan/logs/athan.log
+tail -f /path/to/athan/logs/athan.log
 ```
 
 ## Sleep mode

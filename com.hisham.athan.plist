@@ -7,16 +7,16 @@
     <key>ProgramArguments</key>
     <array>
         <string>/bin/bash</string>
-        <string>/Users/hisham.alam/.athan/athan.sh</string>
+        <string>/Users/hisham.alam/Documents/Wise Coding Projects/athan/athan.sh</string>
     </array>
     <key>StartInterval</key>
     <integer>60</integer>
     <key>RunAtLoad</key>
     <false/>
     <key>StandardOutPath</key>
-    <string>/Users/hisham.alam/.athan/logs/athan.log</string>
+    <string>/Users/hisham.alam/Documents/Wise Coding Projects/athan/logs/athan.log</string>
     <key>StandardErrorPath</key>
-    <string>/Users/hisham.alam/.athan/logs/athan-error.log</string>
+    <string>/Users/hisham.alam/Documents/Wise Coding Projects/athan/logs/athan-error.log</string>
     <key>EnvironmentVariables</key>
     <dict>
         <key>PATH</key>
