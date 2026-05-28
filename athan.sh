@@ -106,7 +106,17 @@ while IFS= read -r PRAYER; do
     P_MIN=$(( 10#${PTIME%%:*} * 60 + 10#${PTIME##*:} ))
     N_MIN=$(( 10#${NOW%%:*} * 60 + 10#${NOW##*:} ))
     DIFF=$(( N_MIN - P_MIN ))
-    (( DIFF < 0 || DIFF > GRACE )) && continue
+
+    # Pre-fire: running up to 1 min early — sleep until prayer time
+    if (( DIFF < 0 && DIFF >= -1 )); then
+        WAIT=$(( -DIFF * 60 ))
+        log "Early by ${WAIT}s for $PRAYER — sleeping"
+        sleep "$WAIT"
+        DIFF=0
+    fi
+
+    # Miss window: up to 5 min late — play if not already recorded
+    (( DIFF < 0 || DIFF > 5 )) && continue
 
     KEY="${TODAY_DATE}:${PRAYER}"
     grep -qF "$KEY" "$STATE" 2>/dev/null && { log "Already played $PRAYER"; continue; }
