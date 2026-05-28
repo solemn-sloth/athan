@@ -2,9 +2,8 @@ import AppKit
 import QuartzCore
 
 private let kAnimationDuration: TimeInterval = 0.35
-private let kWindowWidth: CGFloat = 280
-private let kWindowHeight: CGFloat = 52
-private let kCornerRadius: CGFloat = 26  // true pill = height / 2
+private let kWindowHeight: CGFloat = 44
+private let kCornerRadius: CGFloat = 22  // true pill = height / 2
 
 private final class PillWindow: NSPanel {
     private let targetY: CGFloat
@@ -12,14 +11,24 @@ private final class PillWindow: NSPanel {
 
     init(prayer: String, screen: NSScreen, onSkip: @escaping () -> Void) {
         self.skipAction = onSkip
+
+        // Measure label width so the pill hugs the content
+        let labelFont = NSFont.systemFont(ofSize: 14, weight: .semibold)
+        let labelWidth = (prayer as NSString).size(withAttributes: [.font: labelFont]).width.rounded(.up) + 6
+        let kPad: CGFloat = 18
+        let kGap: CGFloat = 14
+        let kEmojiW: CGFloat = 26
+        let kCloseW: CGFloat = 20    // circular x button
+        let windowWidth = kPad + kEmojiW + kGap + labelWidth + kGap + kCloseW + kPad
+
         let screenFrame = screen.visibleFrame
-        let x = screenFrame.midX - kWindowWidth / 2
+        let x = screenFrame.midX - windowWidth / 2
         let yVisible = screenFrame.maxY - kWindowHeight - 8
         let yHidden = screenFrame.maxY + 10
         self.targetY = yVisible
 
         super.init(
-            contentRect: NSRect(x: x, y: yHidden, width: kWindowWidth, height: kWindowHeight),
+            contentRect: NSRect(x: x, y: yHidden, width: windowWidth, height: kWindowHeight),
             styleMask: [.borderless, .nonactivatingPanel],
             backing: .buffered,
             defer: false
@@ -34,41 +43,42 @@ private final class PillWindow: NSPanel {
         hidesOnDeactivate = false
         animationBehavior = .none
 
-        let content = NSView(frame: NSRect(x: 0, y: 0, width: kWindowWidth, height: kWindowHeight))
-
-        let vibrancy = NSVisualEffectView(frame: content.bounds)
-        vibrancy.autoresizingMask = [.width, .height]
-        vibrancy.material = .popover
+        // Use NSVisualEffectView directly as contentView — required for blur to work in borderless panels
+        let vibrancy = NSVisualEffectView(frame: NSRect(x: 0, y: 0, width: windowWidth, height: kWindowHeight))
+        vibrancy.material = .menu
         vibrancy.state = .active
         vibrancy.blendingMode = .behindWindow
         vibrancy.wantsLayer = true
         vibrancy.layer?.cornerRadius = kCornerRadius
         vibrancy.layer?.masksToBounds = true
-        content.addSubview(vibrancy)
 
         // Mosque emoji
         let emoji = NSTextField(labelWithString: "🕌")
-        emoji.font = NSFont.systemFont(ofSize: 22)
-        emoji.frame = NSRect(x: 14, y: (kWindowHeight - 28) / 2, width: 30, height: 28)
-        content.addSubview(emoji)
+        emoji.font = NSFont.systemFont(ofSize: 20)
+        emoji.frame = NSRect(x: kPad, y: (kWindowHeight - 24) / 2, width: kEmojiW, height: 24)
+        vibrancy.addSubview(emoji)
 
         // Prayer name
         let label = NSTextField(labelWithString: prayer)
-        label.font = .preferredFont(forTextStyle: .headline)
+        label.font = labelFont
         label.textColor = .labelColor
-        label.frame = NSRect(x: 50, y: (kWindowHeight - 20) / 2, width: 140, height: 20)
-        content.addSubview(label)
+        label.frame = NSRect(x: kPad + kEmojiW + kGap, y: (kWindowHeight - 18) / 2, width: labelWidth, height: 18)
+        vibrancy.addSubview(label)
 
-        // Skip button — tinted, no bezel, matches macOS notification action style
-        let skip = NSButton(title: "Skip", target: self, action: #selector(didSkip))
-        skip.bezelStyle = .roundRect
-        skip.controlSize = .small
-        skip.font = .preferredFont(forTextStyle: .caption1)
-        skip.contentTintColor = .controlAccentColor
-        skip.frame = NSRect(x: kWindowWidth - 58, y: (kWindowHeight - 22) / 2, width: 46, height: 22)
-        content.addSubview(skip)
+        // Circular × close button using SF Symbol
+        let closeX = kPad + kEmojiW + kGap + labelWidth + kGap
+        let close = NSButton(frame: NSRect(x: closeX, y: (kWindowHeight - kCloseW) / 2, width: kCloseW, height: kCloseW))
+        close.bezelStyle = .circular
+        close.isBordered = false
+        let xImage = NSImage(systemSymbolName: "xmark.circle.fill", accessibilityDescription: "Dismiss")
+        close.image = xImage
+        close.symbolConfiguration = NSImage.SymbolConfiguration(pointSize: 18, weight: .regular)
+        close.contentTintColor = NSColor.white.withAlphaComponent(0.6)
+        close.target = self
+        close.action = #selector(didSkip)
+        vibrancy.addSubview(close)
 
-        self.contentView = content
+        self.contentView = vibrancy
     }
 
     @objc private func didSkip() {
@@ -84,7 +94,7 @@ private final class PillWindow: NSPanel {
             ctx.duration = kAnimationDuration
             ctx.timingFunction = CAMediaTimingFunction(name: .easeOut)
             animator().setFrame(
-                NSRect(x: frame.origin.x, y: targetY, width: kWindowWidth, height: kWindowHeight),
+                NSRect(x: frame.origin.x, y: targetY, width: frame.width, height: kWindowHeight),
                 display: true
             )
             animator().alphaValue = 1.0
