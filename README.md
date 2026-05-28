@@ -48,7 +48,7 @@ launchctl load ~/Library/LaunchAgents/com.hisham.athan.plist
 
 | Key | Default | Description |
 |-----|---------|-------------|
-| `gateway_mac` | — | MAC address of your home router. Get it with `arp -n $(route get default \| awk '/gateway/{print $2}') \| awk '{print $4}'` |
+| `gateway_macs` | — | Array of router MAC addresses for locations where audio plays. Use `add-athan-location` to add the current network. |
 | `prayers_to_play` | all 5 | Array of `Fajr`, `Dhuhr`, `Asr`, `Maghrib`, `Isha` |
 | `audio_urls` | 6 Aladhan CDN URLs | MP3s to rotate between. Streamed each time, no local file needed |
 | `audio_volume` | `0.8` | Volume for `afplay` (0.0–1.0) |
@@ -66,6 +66,16 @@ GET https://www.wise-web.org/wp-json/my-route/PrayerTime/{year}/{month}/{day}
 ```
 
 To use a different source, replace the API call in `athan.sh` and update the `prayer_field()` function to match the response schema.
+
+## Adding locations
+
+To play the athan (or show the pill) at another location, connect to that network and run:
+
+```bash
+add-athan-location
+```
+
+This detects the router's MAC address and appends it to `gateway_macs` in `config.json`. Run it once per network. No permissions needed.
 
 ## Logs
 

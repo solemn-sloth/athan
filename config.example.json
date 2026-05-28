@@ -1,5 +1,5 @@
 {
-  "gateway_mac": "YOUR_ROUTER_MAC",
+  "gateway_macs": ["YOUR_ROUTER_MAC"],
   "prayers_to_play": ["Fajr", "Dhuhr", "Asr", "Maghrib", "Isha"],
   "audio_urls": [
     "https://cdn.aladhan.com/audio/adhans/a1.mp3",

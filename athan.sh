@@ -9,7 +9,7 @@ log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1"; }
 
 [[ -f "$CONFIG" ]] || { log "ERROR: $CONFIG not found"; exit 1; }
 
-GATEWAY_MAC=$(jq -r '.gateway_mac' "$CONFIG")
+GATEWAY_MACS=$(jq -r '.gateway_macs[]' "$CONFIG" 2>/dev/null || jq -r '.gateway_mac' "$CONFIG")
 VOLUME=$(jq -r '.audio_volume // 0.8' "$CONFIG")
 GRACE=$(jq -r '.grace_period_minutes // 2' "$CONFIG")
 BUFFER=$(jq -r '.meeting_buffer_minutes // 1' "$CONFIG")
@@ -18,12 +18,12 @@ TZ_NAME=$(jq -r '.timezone // "Europe/London"' "$CONFIG")
 
 # --- Home check via router MAC ---
 AT_HOME=false
-if [[ -n "$GATEWAY_MAC" && "$GATEWAY_MAC" != "null" ]]; then
+if [[ -n "$GATEWAY_MACS" && "$GATEWAY_MACS" != "null" ]]; then
     GWAY_IP=$(route get default 2>/dev/null | awk '/gateway/{print $2}')
     CURRENT_MAC=$(arp -n "$GWAY_IP" 2>/dev/null | awk '{print $4}')
-    if [[ "$CURRENT_MAC" == "$GATEWAY_MAC" ]]; then
+    if echo "$GATEWAY_MACS" | grep -qF "$CURRENT_MAC"; then
         AT_HOME=true
-        log "Home confirmed"
+        log "Home confirmed ($CURRENT_MAC)"
     else
         log "Not home — pill only"
     fi
