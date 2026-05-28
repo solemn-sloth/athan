@@ -72,24 +72,56 @@ print $out eq "" ? "false" : $out, "\n";
 ' 2>/dev/null || echo "false"
 }
 
-# Pause Spotify/Music if playing, return what was paused
+# Pause all known audio sources, return the first resumable app found
 pause_audio() {
     PAUSED=""
-    for APP in "Spotify" "Music"; do
+
+    # Native apps with play/pause AppleScript support
+    for APP in "Spotify" "Music" "Podcasts" "Doppler"; do
         STATE=$(osascript -e "tell application \"$APP\" to if it is running then get player state" 2>/dev/null || true)
         if [[ "$STATE" == "playing" ]]; then
             osascript -e "tell application \"$APP\" to pause" 2>/dev/null || true
-            PAUSED="$APP"
+            [[ -z "$PAUSED" ]] && PAUSED="$APP"
             log "Paused $APP"
-            break
         fi
     done
+
+    # Browsers — pause via JavaScript (can't reliably resume, so pause-only)
+    for BROWSER in "Google Chrome" "Firefox" "Safari"; do
+        RUNNING=$(osascript -e "tell application \"System Events\" to (name of processes) contains \"$BROWSER\"" 2>/dev/null || echo "false")
+        if [[ "$RUNNING" == "true" ]]; then
+            case "$BROWSER" in
+                "Google Chrome")
+                    osascript -e 'tell application "Google Chrome"
+                        repeat with w in every window
+                            repeat with t in every tab of w
+                                execute t javascript "document.querySelectorAll(\"audio,video\").forEach(e => { if(!e.paused) { e.pause(); e.dataset.athanPaused=\"1\"; } })"
+                            end repeat
+                        end repeat
+                    end tell' 2>/dev/null || true ;;
+                "Firefox")
+                    # Firefox doesn't support tab JS injection via AppleScript — use media key
+                    osascript -e 'tell application "System Events" to key code 16' 2>/dev/null || true ;;
+                "Safari")
+                    osascript -e 'tell application "Safari"
+                        repeat with w in every window
+                            repeat with t in every tab of w
+                                do JavaScript "document.querySelectorAll(\"audio,video\").forEach(e => { if(!e.paused) { e.pause(); e.dataset.athanPaused=\"1\"; } })" in t
+                            end repeat
+                        end repeat
+                    end tell' 2>/dev/null || true ;;
+            esac
+            log "Paused media in $BROWSER"
+        fi
+    done
+
     echo "$PAUSED"
 }
 
 resume_audio() {
     local APP="$1"
     [[ -z "$APP" ]] && return
+    # Resume native app (browsers resume when user next interacts)
     osascript -e "tell application \"$APP\" to play" 2>/dev/null || true
     log "Resumed $APP"
 }
