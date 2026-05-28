@@ -17,14 +17,16 @@ SKIP_MTG=$(jq -r '.skip_if_meeting // true' "$CONFIG")
 TZ_NAME=$(jq -r '.timezone // "Europe/London"' "$CONFIG")
 
 # --- Home check via router MAC ---
+AT_HOME=false
 if [[ -n "$GATEWAY_MAC" && "$GATEWAY_MAC" != "null" ]]; then
     GWAY_IP=$(route get default 2>/dev/null | awk '/gateway/{print $2}')
     CURRENT_MAC=$(arp -n "$GWAY_IP" 2>/dev/null | awk '{print $4}')
-    if [[ "$CURRENT_MAC" != "$GATEWAY_MAC" ]]; then
-        log "Not home (gateway MAC: '$CURRENT_MAC')"
-        exit 0
+    if [[ "$CURRENT_MAC" == "$GATEWAY_MAC" ]]; then
+        AT_HOME=true
+        log "Home confirmed"
+    else
+        log "Not home — pill only"
     fi
-    log "Home confirmed"
 fi
 
 # --- Fetch prayer times from WISE masjid API ---
@@ -161,27 +163,30 @@ while IFS= read -r PRAYER; do
         fi
     fi
 
-    PAUSED_APP=$(pause_audio)
-
-    URL=$(jq -r --argjson i "$((RANDOM % $(jq '.audio_urls | length' "$CONFIG")))" '.audio_urls[$i]' "$CONFIG")
-    TMP="/tmp/athan-$$.mp3"
     POPUP="$CONFIG_DIR/athan-pop/.build/release/athan-pop"
 
-    log "Playing athan: $PRAYER ($PTIME)"
+    log "Playing athan: $PRAYER ($PTIME) (home=$AT_HOME)"
     mkdir -p "$(dirname "$STATE")"
     echo "$KEY" >> "$STATE"
 
-    (
-        curl -sL --connect-timeout 15 "$URL" -o "$TMP" || { rm -f "$TMP"; exit 1; }
-        afplay -v "$VOLUME" "$TMP" &
-        AFPLAY_PID=$!
-        if [[ -x "$POPUP" ]]; then
-            "$POPUP" --prayer "$PRAYER" --pid "$AFPLAY_PID" --duration 30 &
-        fi
-        wait "$AFPLAY_PID" 2>/dev/null
-        rm -f "$TMP"
-        resume_audio "$PAUSED_APP"
-    ) &
+    if [[ "$AT_HOME" == "true" ]]; then
+        # Full experience: pause audio, play athan, show pill, resume
+        PAUSED_APP=$(pause_audio)
+        URL=$(jq -r --argjson i "$((RANDOM % $(jq '.audio_urls | length' "$CONFIG")))" '.audio_urls[$i]' "$CONFIG")
+        TMP="/tmp/athan-$$.mp3"
+        (
+            curl -sL --connect-timeout 15 "$URL" -o "$TMP" || { rm -f "$TMP"; exit 1; }
+            afplay -v "$VOLUME" "$TMP" &
+            AFPLAY_PID=$!
+            [[ -x "$POPUP" ]] && "$POPUP" --prayer "$PRAYER" --pid "$AFPLAY_PID" --duration 30 &
+            wait "$AFPLAY_PID" 2>/dev/null
+            rm -f "$TMP"
+            resume_audio "$PAUSED_APP"
+        ) &
+    else
+        # Away: pill notification only, no audio
+        [[ -x "$POPUP" ]] && "$POPUP" --prayer "$PRAYER" --pid 0 --duration 30 &
+    fi
 
     log "Recorded $PRAYER"
     break
