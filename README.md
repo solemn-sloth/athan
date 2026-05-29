@@ -49,8 +49,8 @@ swift build -c release --package-path athan-pop
 osascript -e 'tell application "Calendar" to get name of every calendar'
 
 # 5. Install and load the launchd agent
-sed "s|ATHAN_DIR|$PWD|g" com.hisham.athan.plist > ~/Library/LaunchAgents/com.hisham.athan.plist
-launchctl load ~/Library/LaunchAgents/com.hisham.athan.plist
+sed "s|ATHAN_DIR|$PWD|g" local.athan.plist > ~/Library/LaunchAgents/local.athan.plist
+launchctl load ~/Library/LaunchAgents/local.athan.plist
 ```
 </details>
 

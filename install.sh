@@ -117,8 +117,8 @@ ok "Done"
 step 6 "Installing launchd agent"
 mkdir -p logs state
 
-PLIST="$HOME/Library/LaunchAgents/com.hisham.athan.plist"
-sed "s|ATHAN_DIR|$SCRIPT_DIR|g" com.hisham.athan.plist > "$PLIST"
+PLIST="$HOME/Library/LaunchAgents/local.athan.plist"
+sed "s|ATHAN_DIR|$SCRIPT_DIR|g" local.athan.plist > "$PLIST"
 ok "Generated $PLIST"
 
 # Unload first if already registered (idempotent)
