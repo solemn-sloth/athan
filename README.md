@@ -58,6 +58,11 @@ launchctl load ~/Library/LaunchAgents/com.hisham.athan.plist
 
 | Key | Default | Description |
 |-----|---------|-------------|
+| `prayer_source` | `"wise"` | `"wise"` for Wise Masjid, `"aladhan"` for Aladhan API |
+| `city` | `"London"` | City for Aladhan source |
+| `country` | `"UK"` | Country for Aladhan source |
+| `method` | `3` | Aladhan calculation method ID |
+| `school` | `1` | Asr school: `0` = Shafi, `1` = Hanafi |
 | `gateway_macs` | — | Array of router MAC addresses for locations where audio plays. Use `add-athan-location` to add the current network. |
 | `prayers_to_play` | all 5 | Array of `Fajr`, `Dhuhr`, `Asr`, `Maghrib`, `Isha` |
 | `audio_urls` | 6 Aladhan CDN URLs | MP3s to rotate between. Streamed each time, no local file needed |
@@ -67,15 +72,26 @@ launchctl load ~/Library/LaunchAgents/com.hisham.athan.plist
 | `grace_period_minutes` | `2` | How many minutes after prayer time the athan can still trigger (catches late wakes) |
 | `timezone` | `Europe/London` | Timezone for date calculations |
 
-## Prayer time source
+## Prayer time sources
 
-Times come from [Wise Masjid High Wycombe](https://www.wise-web.org/prayer-times/) via their WordPress REST API:
+Set `prayer_source` in `config.json` to choose:
 
-```
-GET https://www.wise-web.org/wp-json/my-route/PrayerTime/{year}/{month}/{day}
-```
+### `"wise"` (default)
 
-To use a different source, replace the API call in `athan.sh` and update the `prayer_field()` function to match the response schema.
+Times from [Wise Masjid High Wycombe](https://www.wise-web.org/prayer-times/) — exact local timetable, no further config needed.
+
+### `"aladhan"`
+
+Times from the [Aladhan API](https://aladhan.com/prayer-times-api) — works for any city worldwide. Requires:
+
+| Key | Example | Description |
+|-----|---------|-------------|
+| `city` | `"London"` | City name |
+| `country` | `"UK"` | Country code or name |
+| `method` | `3` | Calculation method (3 = Muslim World League, 2 = ISNA, 4 = Umm al-Qura, 5 = Egyptian) |
+| `school` | `1` | Asr calculation: `0` = Shafi, `1` = Hanafi |
+
+`install.sh` will prompt for these interactively. To switch source later, edit `config.json` directly.
 
 ## Adding locations
 

@@ -1,4 +1,9 @@
 {
+  "prayer_source": "wise",
+  "city": "London",
+  "country": "UK",
+  "method": 3,
+  "school": 1,
   "gateway_macs": ["YOUR_ROUTER_MAC"],
   "prayers_to_play": ["Fajr", "Dhuhr", "Asr", "Maghrib", "Isha"],
   "audio_urls": [

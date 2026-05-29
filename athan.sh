@@ -29,26 +29,46 @@ if [[ -n "$GATEWAY_MACS" && "$GATEWAY_MACS" != "null" ]]; then
     fi
 fi
 
-# --- Fetch prayer times from WISE masjid API ---
+# --- Fetch prayer times ---
 YEAR=$(TZ="$TZ_NAME" date +%Y)
 MONTH=$(TZ="$TZ_NAME" date +%m)
 DAY=$(TZ="$TZ_NAME" date +%d)
 TODAY_DATE=$(TZ="$TZ_NAME" date +%Y-%m-%d)
 
-RESP=$(curl -sL --connect-timeout 10 \
-    "https://www.wise-web.org/wp-json/my-route/PrayerTime/${YEAR}/${MONTH}/${DAY}" \
-    2>/dev/null)
-[[ "$(echo "$RESP" | jq -r '.prayer_time.d_date // empty')" == "$TODAY_DATE" ]] || { log "API error or wrong date"; exit 0; }
+SOURCE=$(jq -r '.prayer_source // "wise"' "$CONFIG")
 
-prayer_field() {
-    case "$1" in
-        Fajr)    echo "fajr_begins" ;;
-        Dhuhr)   echo "zuhr_begins" ;;
-        Asr)     echo "asr_mithl_1" ;;
-        Maghrib) echo "maghrib_begins" ;;
-        Isha)    echo "isha_begins" ;;
-        *)       echo "" ;;
-    esac
+if [[ "$SOURCE" == "aladhan" ]]; then
+    CITY=$(jq -r '.city' "$CONFIG")
+    COUNTRY=$(jq -r '.country' "$CONFIG")
+    METHOD=$(jq -r '.method // 3' "$CONFIG")
+    SCHOOL=$(jq -r '.school // 0' "$CONFIG")
+    RESP=$(curl -sL --connect-timeout 10 \
+        "https://api.aladhan.com/v1/timingsByCity/${DAY}-${MONTH}-${YEAR}?city=${CITY}&country=${COUNTRY}&method=${METHOD}&school=${SCHOOL}" \
+        2>/dev/null)
+    [[ "$(echo "$RESP" | jq -r '.code')" == "200" ]] || { log "Aladhan API error"; exit 0; }
+else
+    RESP=$(curl -sL --connect-timeout 10 \
+        "https://www.wise-web.org/wp-json/my-route/PrayerTime/${YEAR}/${MONTH}/${DAY}" \
+        2>/dev/null)
+    [[ "$(echo "$RESP" | jq -r '.prayer_time.d_date // empty')" == "$TODAY_DATE" ]] || { log "API error or wrong date"; exit 0; }
+fi
+
+get_prayer_time() {
+    local PRAYER="$1"
+    if [[ "$SOURCE" == "aladhan" ]]; then
+        echo "$RESP" | jq -r ".data.timings.${PRAYER}" | cut -c1-5
+    else
+        local FIELD
+        case "$PRAYER" in
+            Fajr)    FIELD="fajr_begins" ;;
+            Dhuhr)   FIELD="zuhr_begins" ;;
+            Asr)     FIELD="asr_mithl_1" ;;
+            Maghrib) FIELD="maghrib_begins" ;;
+            Isha)    FIELD="isha_begins" ;;
+            *)       echo ""; return ;;
+        esac
+        echo "$RESP" | jq -r ".prayer_time.${FIELD}" | cut -c1-5
+    fi
 }
 
 NOW=$(TZ="$TZ_NAME" date +%H:%M)
@@ -130,12 +150,8 @@ resume_audio() {
 
 # --- Check each prayer ---
 while IFS= read -r PRAYER; do
-    FIELD=$(prayer_field "$PRAYER")
-    [[ -z "$FIELD" ]] && continue
-
-    PTIME_FULL=$(echo "$RESP" | jq -r ".prayer_time.${FIELD}")
-    [[ -z "$PTIME_FULL" || "$PTIME_FULL" == "null" ]] && continue
-    PTIME="${PTIME_FULL:0:5}"  # trim seconds: "22:46:00" → "22:46"
+    PTIME=$(get_prayer_time "$PRAYER")
+    [[ -z "$PTIME" || "$PTIME" == "null" ]] && continue
 
     P_MIN=$(( 10#${PTIME%%:*} * 60 + 10#${PTIME##*:} ))
     N_MIN=$(( 10#${NOW%%:*} * 60 + 10#${NOW##*:} ))

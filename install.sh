@@ -41,10 +41,53 @@ if [[ ! -f config.json ]]; then
     cp config.example.json config.json
     ok "Created config.json from config.example.json"
 
+    # Prayer time source
+    echo ""
+    echo "  Prayer time source:"
+    echo "    1) Wise Masjid High Wycombe (UK — exact local timetable)"
+    echo "    2) Aladhan API (any city worldwide)"
+    read -rp "  Choose [1-2]: " SRC_CHOICE
+    case "$SRC_CHOICE" in
+        2)
+            read -rp "  City: " CITY
+            read -rp "  Country (e.g. UK, US, SA): " COUNTRY
+            echo ""
+            echo "  Calculation method:"
+            echo "    1) Muslim World League"
+            echo "    2) ISNA (North America)"
+            echo "    3) Umm al-Qura (Saudi Arabia)"
+            echo "    4) Egyptian General Authority"
+            read -rp "  Choose [1-4]: " METHOD_CHOICE
+            case "$METHOD_CHOICE" in
+                2) METHOD=2 ;;
+                3) METHOD=4 ;;
+                4) METHOD=5 ;;
+                *) METHOD=3 ;;
+            esac
+            echo ""
+            echo "  Asr school:"
+            echo "    1) Shafi (standard)"
+            echo "    2) Hanafi (later Asr)"
+            read -rp "  Choose [1-2]: " SCHOOL_CHOICE
+            [[ "$SCHOOL_CHOICE" == "2" ]] && SCHOOL=1 || SCHOOL=0
+            tmp=$(mktemp)
+            jq --arg src "aladhan" --arg city "$CITY" --arg country "$COUNTRY" \
+               --argjson method "$METHOD" --argjson school "$SCHOOL" \
+               '.prayer_source=$src | .city=$city | .country=$country | .method=$method | .school=$school' \
+               config.json > "$tmp" && mv "$tmp" config.json
+            ok "Aladhan configured: $CITY, $COUNTRY (method=$METHOD, school=$SCHOOL)"
+            ;;
+        *)
+            tmp=$(mktemp)
+            jq '.prayer_source = "wise"' config.json > "$tmp" && mv "$tmp" config.json
+            ok "Using Wise Masjid High Wycombe timetable"
+            ;;
+    esac
+
+    # Gateway MAC
     GATEWAY_IP=$(route get default 2>/dev/null | awk '/gateway/{print $2}')
     CURRENT_MAC=$(arp -n "$GATEWAY_IP" 2>/dev/null | awk '{print $4}')
     if [[ -n "$CURRENT_MAC" && "$CURRENT_MAC" != "incomplete" ]]; then
-        # Insert MAC into gateway_macs array
         tmp=$(mktemp)
         jq --arg mac "$CURRENT_MAC" '.gateway_macs = [$mac]' config.json > "$tmp" && mv "$tmp" config.json
         ok "Detected and saved gateway MAC: $CURRENT_MAC"
@@ -88,7 +131,7 @@ step 7 "Verifying"
 echo "  Waiting up to 65 seconds for first run..."
 for i in $(seq 1 65); do
     sleep 1
-    EXIT_CODE=$(launchctl list | awk '/com\.hisham\.athan$/{print $2}')
+    EXIT_CODE=$(launchctl list | awk '/local\.athan$/{print $2}')
     if [[ "$EXIT_CODE" == "0" ]]; then
         ok "Agent running (exit 0)"
         break
