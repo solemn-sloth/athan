@@ -24,27 +24,35 @@ Automatic athan (Islamic call to prayer) for macOS. Plays when you're home, at p
 > **Important:** Clone into a path that is NOT inside `~/Documents`, `~/Desktop`, or `~/Downloads`. macOS restricts background agents from accessing those folders. A good default is `~/.local/share/athan` or `~/athan`.
 
 ```bash
-# 1. Clone to a non-protected path
 git clone https://github.com/hisham-alam/athan ~/.local/share/athan
 cd ~/.local/share/athan
+./install.sh
+```
 
-# 2. Copy and edit config
+The script handles everything: checks your install path, detects your router MAC, builds the popup, requests Calendar access, and loads the launchd agent.
+
+<details>
+<summary>Manual steps (if you prefer)</summary>
+
+```bash
+# 1. Copy and edit config
 cp config.example.json config.json
 
-# 3. Find your router MAC (must be on home WiFi/network)
+# 2. Find your router MAC (must be on home WiFi/network)
 arp -n $(route get default | awk '/gateway/{print $2}') | awk '{print $4}'
 # Paste that into config.json as "gateway_macs": ["<mac>"]
 
-# 4. Build the pill notification binary
+# 3. Build the pill notification binary
 swift build -c release --package-path athan-pop
 
-# 5. Grant Calendar access (will prompt on first run)
+# 4. Grant Calendar access (will prompt on first run)
 osascript -e 'tell application "Calendar" to get name of every calendar'
 
-# 6. Install and load the launchd agent
+# 5. Install and load the launchd agent
 sed "s|ATHAN_DIR|$PWD|g" com.hisham.athan.plist > ~/Library/LaunchAgents/com.hisham.athan.plist
 launchctl load ~/Library/LaunchAgents/com.hisham.athan.plist
 ```
+</details>
 
 ## Config
 
