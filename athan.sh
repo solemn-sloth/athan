@@ -165,8 +165,8 @@ while IFS= read -r PRAYER; do
         DIFF=0
     fi
 
-    # Miss window: up to 5 min late — play if not already recorded
-    (( DIFF < 0 || DIFF > 5 )) && continue
+    # Miss window: up to $GRACE min late — play if not already recorded
+    (( DIFF < 0 || DIFF > GRACE )) && continue
 
     KEY="${TODAY_DATE}:${PRAYER}"
     grep -qF "$KEY" "$STATE" 2>/dev/null && { log "Already played $PRAYER"; continue; }
@@ -183,27 +183,41 @@ while IFS= read -r PRAYER; do
 
     log "Playing athan: $PRAYER ($PTIME) (home=$AT_HOME)"
     mkdir -p "$(dirname "$STATE")"
-    echo "$KEY" >> "$STATE"
 
     if [[ "$AT_HOME" == "true" ]]; then
         # Full experience: pause audio, play athan, show pill, resume
         PAUSED_APP=$(pause_audio)
-        URL=$(jq -r --argjson i "$((RANDOM % $(jq '.audio_urls | length' "$CONFIG")))" '.audio_urls[$i]' "$CONFIG")
+        AUDIO_URLS_LEN=$(jq '.audio_urls | length' "$CONFIG")
+        URL=$(jq -r --argjson i "$((RANDOM % AUDIO_URLS_LEN))" '.audio_urls[$i]' "$CONFIG")
         TMP="/tmp/athan-$$.mp3"
-        (
-            curl -sL --connect-timeout 15 "$URL" -o "$TMP" || { rm -f "$TMP"; exit 1; }
+        PLAYED=false
+        for ATTEMPT in 1 2 3; do
+            if curl -sL --connect-timeout 15 "$URL" -o "$TMP" && [[ -s "$TMP" ]]; then
+                PLAYED=true
+                break
+            fi
+            log "Audio download failed (attempt $ATTEMPT) — retrying with next URL"
+            rm -f "$TMP"
+            URL=$(jq -r --argjson i "$((RANDOM % AUDIO_URLS_LEN))" '.audio_urls[$i]' "$CONFIG")
+        done
+        if [[ "$PLAYED" == "true" ]]; then
             afplay -v "$VOLUME" "$TMP" &
             AFPLAY_PID=$!
             [[ -x "$POPUP" ]] && "$POPUP" --prayer "$PRAYER" --pid "$AFPLAY_PID" --duration 30 &
             wait "$AFPLAY_PID" 2>/dev/null
             rm -f "$TMP"
             resume_audio "$PAUSED_APP"
-        ) &
+            echo "$KEY" >> "$STATE"
+            log "Recorded $PRAYER"
+        else
+            log "ERROR: audio download failed after 3 attempts — $PRAYER not recorded"
+            resume_audio "$PAUSED_APP"
+        fi
     else
         # Away: pill notification only, no audio
         [[ -x "$POPUP" ]] && "$POPUP" --prayer "$PRAYER" --pid 0 --duration 30 &
+        echo "$KEY" >> "$STATE"
+        log "Recorded $PRAYER"
     fi
-
-    log "Recorded $PRAYER"
     break
 done < <(jq -r '.prayers_to_play[]' "$CONFIG")
