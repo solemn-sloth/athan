@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-CONFIG_DIR="$HOME/Documents/Wise Coding Projects/athan"
+CONFIG_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CONFIG="$CONFIG_DIR/config.json"
 STATE="$CONFIG_DIR/state/last-played"
 

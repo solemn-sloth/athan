@@ -21,17 +21,19 @@ Automatic athan (Islamic call to prayer) for macOS. Plays when you're home, at p
 
 ## Install
 
+> **Important:** Clone into a path that is NOT inside `~/Documents`, `~/Desktop`, or `~/Downloads`. macOS restricts background agents from accessing those folders. A good default is `~/.local/share/athan` or `~/athan`.
+
 ```bash
-# 1. Clone somewhere convenient
-git clone https://github.com/hisham-alam/athan
-cd athan
+# 1. Clone to a non-protected path
+git clone https://github.com/hisham-alam/athan ~/.local/share/athan
+cd ~/.local/share/athan
 
 # 2. Copy and edit config
 cp config.example.json config.json
 
 # 3. Find your router MAC (must be on home WiFi/network)
 arp -n $(route get default | awk '/gateway/{print $2}') | awk '{print $4}'
-# Paste that into config.json as "gateway_mac"
+# Paste that into config.json as "gateway_macs": ["<mac>"]
 
 # 4. Build the pill notification binary
 swift build -c release --package-path athan-pop
@@ -40,7 +42,7 @@ swift build -c release --package-path athan-pop
 osascript -e 'tell application "Calendar" to get name of every calendar'
 
 # 6. Install and load the launchd agent
-cp com.hisham.athan.plist ~/Library/LaunchAgents/
+sed "s|ATHAN_DIR|$PWD|g" com.hisham.athan.plist > ~/Library/LaunchAgents/com.hisham.athan.plist
 launchctl load ~/Library/LaunchAgents/com.hisham.athan.plist
 ```
 
@@ -80,7 +82,7 @@ This detects the router's MAC address and appends it to `gateway_macs` in `confi
 ## Logs
 
 ```bash
-tail -f /path/to/athan/logs/athan.log
+tail -f ~/.local/share/athan/logs/athan.log
 ```
 
 ## Sleep mode
