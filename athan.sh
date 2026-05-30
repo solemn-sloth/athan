@@ -10,7 +10,6 @@ log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1"; }
 [[ -f "$CONFIG" ]] || { log "ERROR: $CONFIG not found"; exit 1; }
 
 GATEWAY_MACS=$(jq -r '.gateway_macs[]' "$CONFIG" 2>/dev/null || jq -r '.gateway_mac' "$CONFIG")
-VOLUME=$(jq -r '.audio_volume // 0.8' "$CONFIG")
 GRACE=$(jq -r '.grace_period_minutes // 2' "$CONFIG")
 BUFFER=$(jq -r '.meeting_buffer_minutes // 1' "$CONFIG")
 SKIP_MTG=$(jq -r '.skip_if_meeting // true' "$CONFIG")
@@ -201,10 +200,13 @@ while IFS= read -r PRAYER; do
             URL=$(jq -r --argjson i "$((RANDOM % AUDIO_URLS_LEN))" '.audio_urls[$i]' "$CONFIG")
         done
         if [[ "$PLAYED" == "true" ]]; then
-            afplay -v "$VOLUME" "$TMP" &
+            ORIG_VOL=$(osascript -e "output volume of (get volume settings)")
+            osascript -e "set volume output volume 6"
+            afplay "$TMP" &
             AFPLAY_PID=$!
             [[ -x "$POPUP" ]] && "$POPUP" --prayer "$PRAYER" --pid "$AFPLAY_PID" --duration 30 &
             wait "$AFPLAY_PID" 2>/dev/null
+            osascript -e "set volume output volume $ORIG_VOL"
             rm -f "$TMP"
             resume_audio "$PAUSED_APP"
             echo "$KEY" >> "$STATE"

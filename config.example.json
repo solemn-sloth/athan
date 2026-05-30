@@ -14,7 +14,6 @@
     "https://cdn.aladhan.com/audio/adhans/a9.mp3",
     "https://cdn.aladhan.com/audio/adhans/a11-mansour-al-zahrani.mp3"
   ],
-  "audio_volume": 0.8,
   "skip_if_meeting": true,
   "meeting_buffer_minutes": 1,
   "grace_period_minutes": 2,
