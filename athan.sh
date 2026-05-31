@@ -202,6 +202,7 @@ while IFS= read -r PRAYER; do
         if [[ "$PLAYED" == "true" ]]; then
             ORIG_VOL=$(osascript -e "output volume of (get volume settings)")
             osascript -e "set volume output volume 6"
+            sleep 0.1
             afplay "$TMP" &
             AFPLAY_PID=$!
             [[ -x "$POPUP" ]] && "$POPUP" --prayer "$PRAYER" --pid "$AFPLAY_PID" --duration 30 &
