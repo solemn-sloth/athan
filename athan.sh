@@ -200,18 +200,21 @@ while IFS= read -r PRAYER; do
             URL=$(jq -r --argjson i "$((RANDOM % AUDIO_URLS_LEN))" '.audio_urls[$i]' "$CONFIG")
         done
         if [[ "$PLAYED" == "true" ]]; then
+            # ponytail: state-before-play guards re-fire; add flock only if ticks still race.
+            echo "$KEY" >> "$STATE"
+            log "Recorded $PRAYER"
             ORIG_VOL=$(osascript -e "output volume of (get volume settings)")
             osascript -e "set volume output volume 6"
             sleep 0.1
             afplay "$TMP" &
             AFPLAY_PID=$!
-            [[ -x "$POPUP" ]] && "$POPUP" --prayer "$PRAYER" --pid "$AFPLAY_PID" --duration 30 &
+            POPUP_PID=0
+            [[ -x "$POPUP" ]] && { "$POPUP" --prayer "$PRAYER" --pid "$AFPLAY_PID" --duration 3600 & POPUP_PID=$!; }
             wait "$AFPLAY_PID" 2>/dev/null
+            (( POPUP_PID > 0 )) && kill "$POPUP_PID" 2>/dev/null || true
             osascript -e "set volume output volume $ORIG_VOL"
             rm -f "$TMP"
             resume_audio "$PAUSED_APP"
-            echo "$KEY" >> "$STATE"
-            log "Recorded $PRAYER"
         else
             log "ERROR: audio download failed after 3 attempts — $PRAYER not recorded"
             resume_audio "$PAUSED_APP"
