@@ -9,6 +9,15 @@ log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1"; }
 
 [[ -f "$CONFIG" ]] || { log "ERROR: $CONFIG not found"; exit 1; }
 
+LOCK="$CONFIG_DIR/state/lock"
+mkdir -p "$CONFIG_DIR/state"
+# ponytail: atomic mkdir lock — no flock on macOS. Stale only on SIGKILL; add age-check if it ever wedges.
+if ! mkdir "$LOCK" 2>/dev/null; then
+    log "Another athan run is active — skipping tick"
+    exit 0
+fi
+trap 'rmdir "$LOCK" 2>/dev/null || true' EXIT
+
 GATEWAY_MACS=$(jq -r '.gateway_macs[]' "$CONFIG" 2>/dev/null || jq -r '.gateway_mac' "$CONFIG")
 GRACE=$(jq -r '.grace_period_minutes // 2' "$CONFIG")
 BUFFER=$(jq -r '.meeting_buffer_minutes // 1' "$CONFIG")
@@ -210,7 +219,7 @@ while IFS= read -r PRAYER; do
             AFPLAY_PID=$!
             POPUP_PID=0
             [[ -x "$POPUP" ]] && { "$POPUP" --prayer "$PRAYER" --pid "$AFPLAY_PID" --duration 3600 & POPUP_PID=$!; }
-            wait "$AFPLAY_PID" 2>/dev/null
+            wait "$AFPLAY_PID" 2>/dev/null || true
             (( POPUP_PID > 0 )) && kill "$POPUP_PID" 2>/dev/null || true
             osascript -e "set volume output volume $ORIG_VOL"
             rm -f "$TMP"
