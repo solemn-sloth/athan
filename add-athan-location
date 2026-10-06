@@ -5,7 +5,8 @@ set -euo pipefail
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CONFIG="$DIR/config.json"
 
-GATEWAY_IP=$(route get default 2>/dev/null | awk '/gateway/{print $2}')
+GATEWAY_IP=$(route get -ifscope en0 default 2>/dev/null | awk '/gateway/{print $2}')
+[[ -n "$GATEWAY_IP" ]] || GATEWAY_IP=$(route get default 2>/dev/null | awk '/gateway/{print $2}')
 MAC=$(arp -n "$GATEWAY_IP" 2>/dev/null | awk '{print $4}')
 
 if [[ -z "$MAC" || "$MAC" == "incomplete" ]]; then

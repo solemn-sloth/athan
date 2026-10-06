@@ -44,11 +44,7 @@ SOURCE=$(jq -r '.prayer_source // "wise"' "$CONFIG")
 LAT=""; LON=""
 if [[ "$(jq -r '.auto_location // false' "$CONFIG")" == "true" ]]; then
     GEO="$CONFIG_DIR/state/location.json"
-    # On a VPN the IP lookup returns the VPN's location, so keep the last cached one.
-    DEFAULT_IF=$(route get default 2>/dev/null | awk '/interface:/{print $2}')
-    if [[ "$DEFAULT_IF" == utun* && -f "$GEO" ]]; then
-        log "VPN active ($DEFAULT_IF) — keeping cached location"
-    elif [[ -z "$(find "$GEO" -mmin -30 2>/dev/null)" ]]; then
+    if [[ -z "$(find "$GEO" -mmin -30 2>/dev/null)" ]]; then
         GEO_RESP=$(curl -s --connect-timeout 5 "http://ip-api.com/json/?fields=status,lat,lon,timezone" 2>/dev/null || true)
         if [[ "$(echo "$GEO_RESP" | jq -r '.status // empty' 2>/dev/null)" == "success" ]]; then
             echo "$GEO_RESP" > "$GEO"
