@@ -4,8 +4,16 @@
   "country": "UK",
   "method": 3,
   "school": 1,
-  "gateway_macs": ["YOUR_ROUTER_MAC"],
-  "prayers_to_play": ["Fajr", "Dhuhr", "Asr", "Maghrib", "Isha"],
+  "gateway_macs": [
+    "YOUR_ROUTER_MAC"
+  ],
+  "prayers_to_play": [
+    "Fajr",
+    "Dhuhr",
+    "Asr",
+    "Maghrib",
+    "Isha"
+  ],
   "audio_urls": [
     "https://cdn.aladhan.com/audio/adhans/a1.mp3",
     "https://cdn.aladhan.com/audio/adhans/a2.mp3",
@@ -17,5 +25,6 @@
   "skip_if_meeting": true,
   "meeting_buffer_minutes": 1,
   "grace_period_minutes": 2,
-  "timezone": "Europe/London"
+  "timezone": "Europe/London",
+  "auto_location": false
 }

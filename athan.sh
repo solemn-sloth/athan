@@ -37,22 +37,47 @@ if [[ -n "$GATEWAY_MACS" && "$GATEWAY_MACS" != "null" ]]; then
     fi
 fi
 
+# --- Location: Wise Masjid near High Wycombe, Aladhan by coordinates elsewhere ---
+SOURCE=$(jq -r '.prayer_source // "wise"' "$CONFIG")
+LAT=""; LON=""
+if [[ "$(jq -r '.auto_location // false' "$CONFIG")" == "true" ]]; then
+    GEO="$CONFIG_DIR/state/location.json"
+    if [[ -z "$(find "$GEO" -mmin -30 2>/dev/null)" ]]; then
+        GEO_RESP=$(curl -s --connect-timeout 5 "http://ip-api.com/json/?fields=status,lat,lon,timezone" 2>/dev/null || true)
+        if [[ "$(echo "$GEO_RESP" | jq -r '.status // empty' 2>/dev/null)" == "success" ]]; then
+            echo "$GEO_RESP" > "$GEO"
+        else
+            log "Location lookup failed — using config source"
+        fi
+    fi
+    if [[ -f "$GEO" ]]; then
+        LAT=$(jq -r '.lat' "$GEO"); LON=$(jq -r '.lon' "$GEO")
+        TZ_NAME=$(jq -r '.timezone' "$GEO")
+        # High Wycombe: 51.6286, -0.7482. Within 25 km uses the Wise timetable.
+        KM=$(awk -v la="$LAT" -v lo="$LON" 'BEGIN{r=0.0174533; a=(la-51.6286)*r/2; b=(lo+0.7482)*r/2;
+            h=sin(a)^2+cos(la*r)*cos(51.6286*r)*sin(b)^2; print 12742*atan2(sqrt(h),sqrt(1-h))}')
+        if awk -v k="$KM" 'BEGIN{exit !(k<25)}'; then SOURCE="wise"; else SOURCE="aladhan"; fi
+        log "Location ${LAT},${LON} (${KM%.*} km from High Wycombe) — source: $SOURCE"
+    fi
+fi
+
 # --- Fetch prayer times ---
 YEAR=$(TZ="$TZ_NAME" date +%Y)
 MONTH=$(TZ="$TZ_NAME" date +%m)
 DAY=$(TZ="$TZ_NAME" date +%d)
 TODAY_DATE=$(TZ="$TZ_NAME" date +%Y-%m-%d)
 
-SOURCE=$(jq -r '.prayer_source // "wise"' "$CONFIG")
-
 if [[ "$SOURCE" == "aladhan" ]]; then
     CITY=$(jq -r '.city' "$CONFIG")
     COUNTRY=$(jq -r '.country' "$CONFIG")
     METHOD=$(jq -r '.method // 3' "$CONFIG")
     SCHOOL=$(jq -r '.school // 0' "$CONFIG")
-    RESP=$(curl -sL --connect-timeout 10 \
-        "https://api.aladhan.com/v1/timingsByCity/${DAY}-${MONTH}-${YEAR}?city=${CITY}&country=${COUNTRY}&method=${METHOD}&school=${SCHOOL}" \
-        2>/dev/null)
+    if [[ -n "$LAT" ]]; then
+        ALADHAN_URL="https://api.aladhan.com/v1/timings/${DAY}-${MONTH}-${YEAR}?latitude=${LAT}&longitude=${LON}&method=${METHOD}&school=${SCHOOL}&timezonestring=${TZ_NAME}"
+    else
+        ALADHAN_URL="https://api.aladhan.com/v1/timingsByCity/${DAY}-${MONTH}-${YEAR}?city=${CITY}&country=${COUNTRY}&method=${METHOD}&school=${SCHOOL}"
+    fi
+    RESP=$(curl -sL --connect-timeout 10 "$ALADHAN_URL" 2>/dev/null)
     [[ "$(echo "$RESP" | jq -r '.code')" == "200" ]] || { log "Aladhan API error"; exit 0; }
 else
     RESP=$(curl -sL --connect-timeout 10 \

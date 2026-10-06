@@ -1,0 +1,25 @@
+#!/bin/bash
+# Add the current network's router MAC to gateway_macs in config.json.
+set -euo pipefail
+
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CONFIG="$DIR/config.json"
+
+GATEWAY_IP=$(route get default 2>/dev/null | awk '/gateway/{print $2}')
+MAC=$(arp -n "$GATEWAY_IP" 2>/dev/null | awk '{print $4}')
+
+if [[ -z "$MAC" || "$MAC" == "incomplete" ]]; then
+    echo "Could not detect the router MAC. Connect to WiFi and try again." >&2
+    exit 1
+fi
+
+if jq -e --arg mac "$MAC" '.gateway_macs | index($mac)' "$CONFIG" >/dev/null; then
+    echo "Already saved: $MAC"
+    exit 0
+fi
+
+tmp=$(mktemp)
+jq --arg mac "$MAC" '.gateway_macs += [$mac]' "$CONFIG" > "$tmp" && mv "$tmp" "$CONFIG"
+chmod 600 "$CONFIG"
+echo "Added home: $MAC"
+echo "Saved homes: $(jq -r '.gateway_macs | join(", ")' "$CONFIG")"

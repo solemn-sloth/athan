@@ -58,6 +58,7 @@ launchctl load ~/Library/LaunchAgents/local.athan.plist
 
 | Key | Default | Description |
 |-----|---------|-------------|
+| `auto_location` | `false` | If `true`, pick the source from your current location (see below). Overrides `prayer_source` |
 | `prayer_source` | `"wise"` | `"wise"` for Wise Masjid, `"aladhan"` for Aladhan API |
 | `city` | `"London"` | City for Aladhan source |
 | `country` | `"UK"` | Country for Aladhan source |
@@ -93,6 +94,15 @@ Times from the [Aladhan API](https://aladhan.com/prayer-times-api) — works for
 
 `install.sh` will prompt for these interactively. To switch source later, edit `config.json` directly.
 
+### Auto location
+
+Set `"auto_location": true` to choose the source by where you are. Each run looks up your location from your IP address (via ip-api.com, cached for 30 minutes):
+
+- Within 25 km of High Wycombe: Wise Masjid timetable.
+- Anywhere else: Aladhan API by coordinates, using your local timezone, `method` and `school`.
+
+If the lookup fails, `prayer_source` is used. A VPN makes the lookup return the VPN's location.
+
 ## Adding locations
 
 To play the athan (or show the pill) at another location, connect to that network and run:
@@ -101,7 +111,9 @@ To play the athan (or show the pill) at another location, connect to that networ
 add-athan-location
 ```
 
-This detects the router's MAC address and appends it to `gateway_macs` in `config.json`. Run it once per network. No permissions needed.
+This detects the router's MAC address and appends it to `gateway_macs` in `config.json`. Run it once per network. No permissions needed. If the MAC is already saved, nothing changes.
+
+The script is `add-athan-location` in the install folder. Link it onto your `PATH` to run it from anywhere, for example `ln -s ~/.local/share/athan/add-athan-location ~/.local/bin/add-athan-location`.
 
 ## Logs
 
