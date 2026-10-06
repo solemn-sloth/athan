@@ -27,7 +27,9 @@ TZ_NAME=$(jq -r '.timezone // "Europe/London"' "$CONFIG")
 # --- Home check via router MAC ---
 AT_HOME=false
 if [[ -n "$GATEWAY_MACS" && "$GATEWAY_MACS" != "null" ]]; then
-    GWAY_IP=$(route get default 2>/dev/null | awk '/gateway/{print $2}')
+    # Ask the Wi-Fi interface first so a full-tunnel VPN does not hide the router.
+    GWAY_IP=$(route get -ifscope en0 default 2>/dev/null | awk '/gateway/{print $2}')
+    [[ -n "$GWAY_IP" ]] || GWAY_IP=$(route get default 2>/dev/null | awk '/gateway/{print $2}')
     CURRENT_MAC=$(arp -n "$GWAY_IP" 2>/dev/null | awk '{print $4}')
     if echo "$GATEWAY_MACS" | grep -qF "$CURRENT_MAC"; then
         AT_HOME=true
@@ -42,7 +44,11 @@ SOURCE=$(jq -r '.prayer_source // "wise"' "$CONFIG")
 LAT=""; LON=""
 if [[ "$(jq -r '.auto_location // false' "$CONFIG")" == "true" ]]; then
     GEO="$CONFIG_DIR/state/location.json"
-    if [[ -z "$(find "$GEO" -mmin -30 2>/dev/null)" ]]; then
+    # On a VPN the IP lookup returns the VPN's location, so keep the last cached one.
+    DEFAULT_IF=$(route get default 2>/dev/null | awk '/interface:/{print $2}')
+    if [[ "$DEFAULT_IF" == utun* && -f "$GEO" ]]; then
+        log "VPN active ($DEFAULT_IF) — keeping cached location"
+    elif [[ -z "$(find "$GEO" -mmin -30 2>/dev/null)" ]]; then
         GEO_RESP=$(curl -s --connect-timeout 5 "http://ip-api.com/json/?fields=status,lat,lon,timezone" 2>/dev/null || true)
         if [[ "$(echo "$GEO_RESP" | jq -r '.status // empty' 2>/dev/null)" == "success" ]]; then
             echo "$GEO_RESP" > "$GEO"
