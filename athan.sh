@@ -44,7 +44,12 @@ SOURCE=$(jq -r '.prayer_source // "wise"' "$CONFIG")
 LAT=""; LON=""
 if [[ "$(jq -r '.auto_location // false' "$CONFIG")" == "true" ]]; then
     GEO="$CONFIG_DIR/state/location.json"
-    if [[ -z "$(find "$GEO" -mmin -30 2>/dev/null)" ]]; then
+    # Cloudflare WARP hides your real IP, so the lookup would return its edge location.
+    WARP=$(curl -s --connect-timeout 3 https://www.cloudflare.com/cdn-cgi/trace 2>/dev/null | awk -F= '/^warp=/{print $2}')
+    if [[ "$WARP" == "on" || "$WARP" == "plus" ]]; then
+        log "WARP active — skipping location lookup, using prayer_source ($SOURCE)"
+        rm -f "$GEO"
+    elif [[ -z "$(find "$GEO" -mmin -30 2>/dev/null)" ]]; then
         GEO_RESP=$(curl -s --connect-timeout 5 "http://ip-api.com/json/?fields=status,lat,lon,timezone" 2>/dev/null || true)
         if [[ "$(echo "$GEO_RESP" | jq -r '.status // empty' 2>/dev/null)" == "success" ]]; then
             echo "$GEO_RESP" > "$GEO"

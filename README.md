@@ -101,7 +101,7 @@ Set `"auto_location": true` to choose the source by where you are. Each run look
 - Within 25 km of High Wycombe: Wise Masjid timetable.
 - Anywhere else: Aladhan API by coordinates, using your local timezone, `method` and `school`.
 
-If the lookup fails, `prayer_source` is used. A VPN makes the lookup return the VPN's location.
+If the lookup fails, `prayer_source` is used. When Cloudflare WARP is on, the lookup is skipped and `prayer_source` is used. Other VPNs make the lookup return the VPN's location.
 
 ## Adding locations
 
